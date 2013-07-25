@@ -9,6 +9,7 @@ import tempfile
 import os
 import subprocess
 import re
+import shutil
 
 # classes
 class BackupPolicy:
@@ -141,21 +142,30 @@ class RepositoryBackup:
             raise RepositoryFetchException(self.repo)
         
     def save(self,fullpath):
-        ret = subprocess.call([
-            'tar',
-            '-C',self.tmp,
-            '-czf',fullpath,
-            self.repo.name()
-            ])
-        if not ret == 0:
-            raise RepositoryStoreException(self.repo)
+        reponame = self.repo.name()
+        tarpath = '/'.join([self.tmp,reponame + '.tar'])
+        gzpath = tarpath + '.gz'
+        try:
+            ret = subprocess.call([
+                    'tar',
+                    '-C',self.tmp,
+                    '-cf',tarpath,reponame
+                    ])
+            if not ret == 0:
+                raise RepositoryStoreException(self.repo,fullpath)
+            ret = subprocess.call(['gzip',tarpath])
+            if not ret == 0:
+                raise RepositoryStoreException(self.repo,fullpath)
+            shutil.move(gzpath,fullpath)
+        except OSError, e:
+            raise RepositoryStoreException(self.repo,fullpath)            
         try:
             stat = os.stat(fullpath)
         except OSError:
-            raise RepositoryStoreException(self.repo)
+            raise RepositoryStoreException(self.repo,fullpath)
         else:
             if not stat.st_size > 0:
-                raise RepositoryStoreException(self.repo)
+                raise RepositoryStoreException(self.repo,fullpath)
 
     # remove temporary files
     def clean(self):
@@ -170,9 +180,10 @@ class RepositoryFetchException(Exception):
         self.repo = repo
         self.args = (repo)
 class RepositoryStoreException(Exception):
-    def __init__(self,repo):
+    def __init__(self,repo,path):
         self.repo = repo
-        self.args = (repo)
+        self.path = path
+        self.args = (repo,path)
 class RepositoryDefinitionException(Exception):
     def __init__(self,failed):
         self.failed = failed

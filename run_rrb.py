@@ -67,6 +67,9 @@ try:
                     backup = RepositoryBackup(repo)
                     logging.debug('%(id)s: download remote content' % repo)
                     backup.retrieve()
+                    logging.debug(
+                        '%(id)s: downloaded repository to %(path)s' %
+                        {'id': repo.id, 'path': backup.tmp})
                     logging.debug('%(id)s: store downloaded repository' % repo)
                     backup.save(store.fullpath(today))
                 except RepositoryNameException, e:
@@ -74,6 +77,11 @@ try:
                     continue
                 except RepositoryFetchException, e:
                     logging.error('%(id)s: could not fetch repository from URL %(url)s' % e.repo)
+                    continue
+                except RepositoryStoreException, e:
+                    logging.error(
+                        '%(id)s: could not store repository at %(path)s' %
+                        {'id': repo.id, 'path': e.path})
                     continue
             finally:
                 backup.clean()
