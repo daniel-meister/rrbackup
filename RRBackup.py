@@ -148,8 +148,9 @@ class RepositoryBackup:
         try:
             ret = subprocess.call([
                     'tar',
+                    '-cf',tarpath,
                     '-C',self.tmp,
-                    '-cf',tarpath,reponame
+                    reponame
                     ])
             if not ret == 0:
                 raise RepositoryStoreException(self.repo,fullpath)
