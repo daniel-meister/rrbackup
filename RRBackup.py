@@ -130,9 +130,14 @@ class RepositoryBackup:
     '''
     def __init__(self,repo):
         self.repo = repo
+        self.tmp = None
 
     def retrieve(self):
-        self.tmp = tempfile.mkdtemp()
+        try:
+            self.tmp = tempfile.mkdtemp()
+        except:
+            self.tmp = None
+            raise
         ret = subprocess.call([
             'git','clone',
             '--mirror','--quiet',
@@ -170,7 +175,13 @@ class RepositoryBackup:
 
     # remove temporary files
     def clean(self):
-        pass
+        if self.tmp is None:
+            raise RepositoryCleanException(self.repo)
+        try:
+            shutil.rmtree(self.tmp)
+        except OSError, e:
+            if e.errno != 2:
+                raise
 
 class RepositoryNameException(Exception):
     def __init__(self,repo):
@@ -185,6 +196,10 @@ class RepositoryStoreException(Exception):
         self.repo = repo
         self.path = path
         self.args = (repo,path)
+class RepositoryCleanException(Exception):
+    def __init__(self,repo):
+        self.repo = repo
+        self.args = (repo)
 class RepositoryDefinitionException(Exception):
     def __init__(self,failed):
         self.failed = failed

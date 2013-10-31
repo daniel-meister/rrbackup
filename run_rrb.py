@@ -84,7 +84,11 @@ try:
                         {'id': repo.id, 'path': e.path})
                     continue
             finally:
-                backup.clean()
+                try:
+                    backup.clean()
+                except RepositoryCleanException, e:
+                    logging.warning('%(id)s: could cleanup temporary directory' % e.repo)
+                    
 
         have = store.list()
         logging.debug(
